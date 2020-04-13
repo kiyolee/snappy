@@ -668,9 +668,9 @@ static inline char* EmitCopyAtMost64(char* op, size_t offset, size_t len) {
   assert(len_less_than_12 == (len < 12));
 
   if (len_less_than_12) {
-    uint32_t u = (len << 2) + (offset << 8);
-    uint32_t copy1 = COPY_1_BYTE_OFFSET - (4 << 2) + ((offset >> 3) & 0xe0);
-    uint32_t copy2 = COPY_2_BYTE_OFFSET - (1 << 2);
+    uint32_t u = static_cast<uint32_t>((len << 2) + (offset << 8));
+    uint32_t copy1 = static_cast<uint32_t>(COPY_1_BYTE_OFFSET - (4 << 2) + ((offset >> 3) & 0xe0));
+    uint32_t copy2 = static_cast<uint32_t>(COPY_2_BYTE_OFFSET - (1 << 2));
     // It turns out that offset < 2048 is a difficult to predict branch.
     // `perf record` shows this is the highest percentage of branch misses in
     // benchmarks. This code produces branch free code, the data dependency
@@ -682,7 +682,7 @@ static inline char* EmitCopyAtMost64(char* op, size_t offset, size_t len) {
   } else {
     // Write 4 bytes, though we only care about 3 of them.  The output buffer
     // is required to have some slack, so the extra byte won't overrun it.
-    uint32_t u = COPY_2_BYTE_OFFSET + ((len - 1) << 2) + (offset << 8);
+    uint32_t u = static_cast<uint32_t>(COPY_2_BYTE_OFFSET + ((len - 1) << 2) + (offset << 8));
     LittleEndian::Store32(op, u);
     op += 3;
   }
@@ -744,7 +744,7 @@ size_t CalculateTableSize(size_t input_size) {
   }
   // This is equivalent to Log2Ceiling(input_size), assuming input_size > 1.
   // 2 << Log2Floor(x - 1) is equivalent to 1 << (1 + Log2Floor(x - 1)).
-  return 2u << Bits::Log2Floor(input_size - 1);
+  return 2u << Bits::Log2Floor(static_cast<uint32_t>(input_size - 1));
 }
 }  // namespace
 
@@ -846,7 +846,7 @@ char* CompressFragment(const char* input, size_t input_size, char* op,
             candidate = base_ip + *table_entry;
             assert(candidate >= base_ip);
             assert(candidate < ip + i);
-            *table_entry = delta + i;
+            *table_entry = static_cast<uint16_t>(delta + i);
             if (SNAPPY_PREDICT_FALSE(LittleEndian::Load32(candidate) == dword)) {
               *op = LITERAL | (i << 2);
               UnalignedCopy128(next_emit, op + 1);
@@ -875,7 +875,7 @@ char* CompressFragment(const char* input, size_t input_size, char* op,
         assert(candidate >= base_ip);
         assert(candidate < ip);
 
-        *table_entry = ip - base_ip;
+        *table_entry = static_cast<uint16_t>(ip - base_ip);
         if (SNAPPY_PREDICT_FALSE(static_cast<uint32_t>(data) ==
                                 LittleEndian::Load32(candidate))) {
           break;
@@ -888,7 +888,7 @@ char* CompressFragment(const char* input, size_t input_size, char* op,
       // than 4 bytes match.  But, prior to the match, input
       // bytes [next_emit, ip) are unmatched.  Emit them as "literal bytes."
       assert(next_emit + 16 <= ip_end);
-      op = EmitLiteral</*allow_fast_path=*/true>(op, next_emit, ip - next_emit);
+      op = EmitLiteral</*allow_fast_path=*/true>(op, next_emit, static_cast<int>(ip - next_emit));
 
       // Step 3: Call EmitCopy, and then see if another EmitCopy could
       // be our next move.  Repeat until we find no match for the
@@ -924,10 +924,10 @@ char* CompressFragment(const char* input, size_t input_size, char* op,
         // table[Hash(ip, mask)] for that.  To improve compression,
         // we also update table[Hash(ip - 1, mask)] and table[Hash(ip, mask)].
         *TableEntry(table, LittleEndian::Load32(ip - 1), mask) =
-            ip - base_ip - 1;
+            static_cast<uint16_t>(ip - base_ip - 1);
         uint16_t* table_entry = TableEntry(table, data, mask);
         candidate = base_ip + *table_entry;
-        *table_entry = ip - base_ip;
+        *table_entry = static_cast<uint16_t>(ip - base_ip);
         // Measurements on the benchmarks have shown the following probabilities
         // for the loop to exit (ie. avg. number of iterations is reciprocal).
         // BM_Flat/6  txt1    p = 0.3-0.4
@@ -941,14 +941,14 @@ char* CompressFragment(const char* input, size_t input_size, char* op,
       } while (static_cast<uint32_t>(data) == LittleEndian::Load32(candidate));
       // Because the least significant 5 bytes matched, we can utilize data
       // for the next iteration.
-      preload = data >> 8;
+      preload = static_cast<uint32_t>(data >> 8);
     }
   }
 
 emit_remainder:
   // Emit the remaining bytes as a literal
   if (ip < ip_end) {
-    op = EmitLiteral</*allow_fast_path=*/false>(op, ip, ip_end - ip);
+    op = EmitLiteral</*allow_fast_path=*/false>(op, ip, static_cast<int>(ip_end - ip));
   }
 
   return op;
@@ -1643,7 +1643,7 @@ class SnappyDecompressor {
           // Long literal.
           const size_t literal_length_length = literal_length - 60;
           literal_length =
-              ExtractLowBytes(LittleEndian::Load32(ip), literal_length_length) +
+              ExtractLowBytes(LittleEndian::Load32(ip), static_cast<int>(literal_length_length)) +
               1;
           ip += literal_length_length;
         }
@@ -1656,7 +1656,7 @@ class SnappyDecompressor {
           size_t n;
           ip = reader_->Peek(&n);
           avail = n;
-          peeked_ = avail;
+          peeked_ = static_cast<uint32_t>(avail);
           if (avail == 0) goto exit;
           ip_limit_ = ip + avail;
           ResetLimit(ip);
@@ -1726,7 +1726,7 @@ bool SnappyDecompressor::RefillTag() {
     reader_->Skip(peeked_);  // All peeked bytes are used up
     size_t n;
     ip = reader_->Peek(&n);
-    peeked_ = n;
+    peeked_ = static_cast<uint32_t>(n);
     eof_ = (n == 0);
     if (eof_) return false;
     ip_limit_ = ip + n;
@@ -1824,7 +1824,7 @@ size_t Compress(Source* reader, Sink* writer, CompressionOptions options) {
   assert(N <= 0xFFFFFFFFu);
   const size_t uncompressed_size = N;
   char ulength[Varint::kMax32];
-  char* p = Varint::Encode32(ulength, N);
+  char* p = Varint::Encode32(ulength, static_cast<uint32_t>(N));
   writer->Append(ulength, p - ulength);
   written += (p - ulength);
 
