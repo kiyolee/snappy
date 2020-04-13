@@ -138,7 +138,7 @@ void VerifyStringSink(const std::string& input) {
 }
 
 struct iovec* GetIOVec(const std::string& input, char*& buf, size_t& num) {
-  std::minstd_rand0 rng(input.size());
+  std::minstd_rand0 rng(static_cast<std::minstd_rand0::result_type>(input.size()));
   std::uniform_int_distribution<size_t> uniform_1_to_10(1, 10);
   num = uniform_1_to_10(rng);
   if (input.size() < num) {
@@ -212,7 +212,7 @@ void VerifyNonBlockedCompression(const std::string& input) {
   }
 
   std::string prefix;
-  Varint::Append32(&prefix, input.size());
+  Varint::Append32(&prefix, static_cast<uint32_t>(input.size()));
 
   // Setup compression table
   snappy::internal::WorkingMemory wmem(input.size());
@@ -375,7 +375,7 @@ void AppendLiteral(std::string* dst, const std::string& literal) {
   size_t n = literal.size() - 1;
   if (n < 60) {
     // Fit length in tag byte
-    dst->push_back(0 | (n << 2));
+    dst->push_back(static_cast<char>(0 | (n << 2)));
   } else {
     // Encode in upcoming bytes
     char number[4];
@@ -405,14 +405,14 @@ void AppendCopy(std::string* dst, size_t offset, size_t length) {
 
     if ((to_copy >= 4) && (to_copy < 12) && (offset < 2048)) {
       assert(to_copy-4 < 8);            // Must fit in 3 bits
-      dst->push_back(1 | ((to_copy-4) << 2) | ((offset >> 8) << 5));
-      dst->push_back(offset & 0xff);
+      dst->push_back(static_cast<char>(1 | ((to_copy-4) << 2) | ((offset >> 8) << 5)));
+      dst->push_back(static_cast<char>(offset & 0xff));
     } else if (offset < 65536) {
-      dst->push_back(2 | ((to_copy-1) << 2));
-      dst->push_back(offset & 0xff);
-      dst->push_back(offset >> 8);
+      dst->push_back(static_cast<char>(2 | ((to_copy-1) << 2)));
+      dst->push_back(static_cast<char>(offset & 0xff));
+      dst->push_back(static_cast<char>(offset >> 8));
     } else {
-      dst->push_back(3 | ((to_copy-1) << 2));
+      dst->push_back(static_cast<char>(3 | ((to_copy-1) << 2)));
       dst->push_back(offset & 0xff);
       dst->push_back((offset >> 8) & 0xff);
       dst->push_back((offset >> 16) & 0xff);
@@ -545,7 +545,7 @@ TEST(Snappy, FourByteOffset) {
   const size_t length = n1 * fragment1.size() + n2 * fragment2.size();
 
   std::string compressed;
-  Varint::Append32(&compressed, length);
+  Varint::Append32(&compressed, static_cast<uint32_t>(length));
 
   AppendLiteral(&compressed, fragment1);
   std::string src = fragment1;
