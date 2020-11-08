@@ -142,7 +142,7 @@ class WorkingMemory {
   // Allocates and clears a hash table using memory in "*this",
   // stores the number of buckets in "*table_size" and returns a pointer to
   // the base of the hash table.
-  uint16_t* GetHashTable(size_t fragment_size, int* table_size) const;
+  uint16_t* GetHashTable(size_t fragment_size, size_t* table_size) const;
   char* GetScratchInput() const { return input_; }
   char* GetScratchOutput() const { return output_; }
 
@@ -173,7 +173,7 @@ char* CompressFragment(const char* input,
                        size_t input_length,
                        char* op,
                        uint16_t* table,
-                       const int table_size);
+                       const size_t table_size);
 
 // Find the largest n such that
 //
