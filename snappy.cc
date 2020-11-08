@@ -734,7 +734,7 @@ bool GetUncompressedLength(const char* start, size_t n, size_t* result) {
 }
 
 namespace {
-uint32_t CalculateTableSize(uint32_t input_size) {
+size_t CalculateTableSize(size_t input_size) {
   static_assert(
       kMaxHashTableSize >= kMinHashTableSize,
       "kMaxHashTableSize should be greater or equal to kMinHashTableSize.");
@@ -767,7 +767,7 @@ WorkingMemory::~WorkingMemory() {
 }
 
 uint16_t* WorkingMemory::GetHashTable(size_t fragment_size,
-                                      int* table_size) const {
+                                      size_t* table_size) const {
   const size_t htsize = CalculateTableSize(fragment_size);
   memset(table_, 0, htsize * sizeof(*table_));
   *table_size = htsize;
@@ -788,7 +788,7 @@ uint16_t* WorkingMemory::GetHashTable(size_t fragment_size,
 // "end - op" is the compressed size of "input".
 namespace internal {
 char* CompressFragment(const char* input, size_t input_size, char* op,
-                       uint16_t* table, const int table_size) {
+                       uint16_t* table, const size_t table_size) {
   // "ip" is the input pointer, and "op" is the output pointer.
   const char* ip = input;
   assert(input_size <= kBlockSize);
@@ -1721,11 +1721,11 @@ bool SnappyDecompressor::RefillTag() {
   // For copy 4 the next 5 bytes (tag and 4 byte offset)
   // For all small literals we only need 1 byte buf for literals 60...63 the
   // length is encoded in 1...4 extra bytes.
-  const uint32_t needed = CalculateNeeded(c);
+  const size_t needed = CalculateNeeded(c);
   assert(needed <= sizeof(scratch_));
 
   // Read more bytes from reader if needed
-  uint32_t nbuf = ip_limit_ - ip;
+  size_t nbuf = ip_limit_ - ip;
   if (nbuf < needed) {
     // Stitch together bytes from ip and reader to form the word
     // contents.  We store the needed bytes in "scratch_".  They
@@ -1738,7 +1738,7 @@ bool SnappyDecompressor::RefillTag() {
       size_t length;
       const char* src = reader_->Peek(&length);
       if (length == 0) return false;
-      uint32_t to_add = std::min<uint32_t>(needed - nbuf, length);
+      size_t to_add = std::min(needed - nbuf, length);
       std::memcpy(scratch_ + nbuf, src, to_add);
       nbuf += to_add;
       reader_->Skip(to_add);
@@ -1774,8 +1774,8 @@ static bool InternalUncompress(Source* r, Writer* writer) {
 
 template <typename Writer>
 static bool InternalUncompressAllTags(SnappyDecompressor* decompressor,
-                                      Writer* writer, uint32_t compressed_len,
-                                      uint32_t uncompressed_len) {
+                                      Writer* writer, size_t compressed_len,
+                                      size_t uncompressed_len) {
     int token = 0;
   Report(token, "snappy_uncompress", compressed_len, uncompressed_len);
 
@@ -1837,11 +1837,11 @@ size_t Compress(Source* reader, Sink* writer, CompressionOptions options) {
     assert(fragment_size == num_to_read);
 
     // Get encoding table for compression
-    int table_size;
+    size_t table_size;
     uint16_t* table = wmem.GetHashTable(num_to_read, &table_size);
 
     // Compress input_fragment and append to dest
-    int max_output = MaxCompressedLength(num_to_read);
+    const size_t max_output = MaxCompressedLength(num_to_read);
 
     // Since we encode kBlockSize regions followed by a region
     // which is <= kBlockSize in length, a previously allocated
@@ -2427,7 +2427,7 @@ class SnappyScatteredWriter {
   inline bool TryFastAppend(const char* ip, size_t available, size_t length,
                             char** op_p) {
     char* op = *op_p;
-    const int space_left = op_limit_ - op;
+    const size_t space_left = op_limit_ - op;
     if (length <= 16 && available >= 16 + kMaximumTagLength &&
         space_left >= 16) {
       // Fast path, used for the majority (about 95%) of invocations.
@@ -2536,7 +2536,7 @@ class SnappySinkAllocator {
  public:
   explicit SnappySinkAllocator(Sink* dest) : dest_(dest) {}
 
-  char* Allocate(int size) {
+  char* Allocate(size_t size) {
     Datablock block(new char[size], size);
     blocks_.push_back(block);
     return block.data;
