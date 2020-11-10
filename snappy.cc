@@ -2549,12 +2549,21 @@ class SnappySinkAllocator {
   // to the blocks.
   void Flush(size_t size) {
     size_t size_written = 0;
+#if defined(_MSC_VER) && _MSC_VER >= 1700
     for (Datablock& block : blocks_) {
+#else
+    for (auto it = blocks_.begin(), itend = blocks_.end(); it != itend; ++it) {
+      Datablock& block = *it;
+#endif
       size_t block_size = std::min<size_t>(block.size, size - size_written);
       dest_->AppendAndTakeOwnership(block.data, block_size,
                                     &SnappySinkAllocator::Deleter, NULL);
       size_written += block_size;
+#if defined(_MSC_VER) && _MSC_VER >= 1700
     }
+#else
+    }
+#endif
     blocks_.clear();
   }
 

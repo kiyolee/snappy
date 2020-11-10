@@ -154,7 +154,11 @@ class __SNAPPY_API Source {
 class __SNAPPY_API ByteArraySource : public Source {
  public:
   ByteArraySource(const char* p, size_t n) : ptr_(p), left_(n) { }
+#if defined(_MSC_VER) && _MSC_VER >= 1700
   ~ByteArraySource() override;
+#else
+  virtual ~ByteArraySource();
+#endif
   size_t Available() const override;
   const char* Peek(size_t* len) override;
   void Skip(size_t n) override;
@@ -167,7 +171,11 @@ class __SNAPPY_API ByteArraySource : public Source {
 class __SNAPPY_API UncheckedByteArraySink : public Sink {
  public:
   explicit UncheckedByteArraySink(char* dest) : dest_(dest) { }
+#if defined(_MSC_VER) && _MSC_VER >= 1700
   ~UncheckedByteArraySink() override;
+#else
+  virtual ~UncheckedByteArraySink();
+#endif
   void Append(const char* data, size_t n) override;
   char* GetAppendBuffer(size_t len, char* scratch) override;
   char* GetAppendBufferVariable(

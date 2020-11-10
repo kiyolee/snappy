@@ -326,9 +326,15 @@ TEST(CorruptedTest, VerifyCorrupted) {
   // This is testing for a security bug - a buffer that decompresses to 100k
   // but we lie in the snappy header and only reserve 0 bytes of memory :)
   source.resize(100000);
+#if defined(_MSC_VER) && _MSC_VER >= 1700
   for (char& source_char : source) {
     source_char = 'A';
   }
+#else
+  for (auto it = source.begin(), itend = source.end(); it != itend; ++it) {
+    *it = 'A';
+  }
+#endif
   snappy::Compress(source.data(), source.size(), &dest);
   dest[0] = dest[1] = dest[2] = dest[3] = 0;
   CHECK(!IsValidCompressedBuffer(dest));

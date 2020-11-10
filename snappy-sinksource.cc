@@ -33,9 +33,17 @@
 
 namespace snappy {
 
+#if defined(_MSC_VER) && _MSC_VER >= 1700
 Source::~Source() = default;
+#else
+Source::~Source() {}
+#endif
 
+#if defined(_MSC_VER) && _MSC_VER >= 1700
 Sink::~Sink() = default;
+#else
+Sink::~Sink() {}
+#endif
 
 char* Sink::GetAppendBuffer(size_t length, char* scratch) {
   // TODO: Switch to [[maybe_unused]] when we can assume C++17.
@@ -63,7 +71,11 @@ void Sink::AppendAndTakeOwnership(
   (*deleter)(deleter_arg, bytes, n);
 }
 
+#if defined(_MSC_VER) && _MSC_VER >= 1700
 ByteArraySource::~ByteArraySource() = default;
+#else
+ByteArraySource::~ByteArraySource() {}
+#endif
 
 size_t ByteArraySource::Available() const { return left_; }
 
