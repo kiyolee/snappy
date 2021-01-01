@@ -1,5 +1,6 @@
 # Editors.
 *.sw*
+*~
 .vscode
 .DS_Store
 
