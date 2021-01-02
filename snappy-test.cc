@@ -56,7 +56,12 @@ bool StatusStub::ok() { return true; }
 
 StatusStub GetContents(const std::string &filename, std::string *output,
                        const OptionsStub & /* options */) {
+#ifdef _MSC_VER
+  std::FILE *fp = nullptr;
+  if (fopen_s(&fp, filename.c_str(), "rb") != 0) fp = nullptr;
+#else
   std::FILE *fp = std::fopen(filename.c_str(), "rb");
+#endif
   if (fp == nullptr) {
     std::perror(filename.c_str());
     std::exit(1);
@@ -79,7 +84,12 @@ StatusStub GetContents(const std::string &filename, std::string *output,
 
 StatusStub SetContents(const std::string &file_name, const std::string &content,
                        const OptionsStub & /* options */) {
+#ifdef _MSC_VER
+    std::FILE* fp = nullptr;
+    if (fopen_s(&fp, file_name.c_str(), "wb") != 0) fp = nullptr;
+#else
   std::FILE *fp = std::fopen(file_name.c_str(), "wb");
+#endif
   if (fp == nullptr) {
     std::perror(file_name.c_str());
     std::exit(1);
@@ -101,10 +111,20 @@ namespace snappy {
 
 std::string ReadTestDataFile(const std::string& base, size_t size_limit) {
   std::string contents;
+#ifdef _MSC_VER
+  char* srcdir = nullptr;
+  size_t srcdirlen = 0;
+  if (_dupenv_s(&srcdir, &srcdirlen, "srcdir") != 0) // This is set by Automake.
+    srcdir = nullptr;
+#else
   const char* srcdir = getenv("srcdir");  // This is set by Automake.
+#endif
   std::string prefix;
   if (srcdir) {
     prefix = std::string(srcdir) + "/";
+#ifdef _MSC_VER
+    free(srcdir);
+#endif
   }
   file::GetContents(prefix + "testdata/" + base, &contents, file::Defaults()
       ).ok();
@@ -118,9 +138,14 @@ std::string StrFormat(const char* format, ...) {
   char buffer[4096];
   std::va_list ap;
   va_start(ap, format);
+  int const n =
+#ifdef _MSC_VER
+  _vsnprintf_s(buffer, _TRUNCATE, format, ap);
+#else
   std::vsnprintf(buffer, sizeof(buffer), format, ap);
+#endif
   va_end(ap);
-  return buffer;
+  return std::string(buffer, (0 <= n && n < sizeof(buffer)) ? n : (sizeof(buffer)-1));
 }
 
 LogMessage::~LogMessage() { std::cerr << std::endl; }
