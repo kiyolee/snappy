@@ -40,9 +40,19 @@ namespace snappy {
 
 std::string ReadTestDataFile(const char* base, size_t size_limit) {
   std::string srcdir;
+#ifdef _MSC_VER
+  char* srcdir_env = nullptr;
+  size_t srcdirlen = 0;
+  if (_dupenv_s(&srcdir_env, &srcdirlen, "srcdir") != 0) // This is set by Automake.
+    srcdir_env = nullptr;
+#else
   const char* srcdir_env = std::getenv("srcdir");  // This is set by Automake.
+#endif
   if (srcdir_env) {
     srcdir = std::string(srcdir_env) + "/";
+#ifdef _MSC_VER
+    free(srcdir_env);
+#endif
   }
 
   std::string contents;
