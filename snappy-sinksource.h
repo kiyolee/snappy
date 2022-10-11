@@ -31,10 +31,18 @@
 
 #include <stddef.h>
 
+#ifndef __SNAPPY_API
+#ifdef _MSC_VER
+#include "snappy-dll.h"
+#else
+#define __SNAPPY_API
+#endif
+#endif
+
 namespace snappy {
 
 // A Sink is an interface that consumes a sequence of bytes.
-class Sink {
+class __SNAPPY_API Sink {
  public:
   Sink() { }
   virtual ~Sink();
@@ -108,7 +116,7 @@ class Sink {
 };
 
 // A Source is an interface that yields a sequence of bytes
-class Source {
+class __SNAPPY_API Source {
  public:
   Source() { }
   virtual ~Source();
@@ -143,7 +151,7 @@ class Source {
 };
 
 // A Source implementation that yields the contents of a flat array
-class ByteArraySource : public Source {
+class __SNAPPY_API ByteArraySource : public Source {
  public:
   ByteArraySource(const char* p, size_t n) : ptr_(p), left_(n) { }
   ~ByteArraySource() override;
@@ -156,7 +164,7 @@ class ByteArraySource : public Source {
 };
 
 // A Sink implementation that writes to a flat array without any bound checks.
-class UncheckedByteArraySink : public Sink {
+class __SNAPPY_API UncheckedByteArraySink : public Sink {
  public:
   explicit UncheckedByteArraySink(char* dest) : dest_(dest) { }
   ~UncheckedByteArraySink() override;
