@@ -33,6 +33,14 @@
 #ifndef THIRD_PARTY_SNAPPY_OPENSOURCE_SNAPPY_C_H_
 #define THIRD_PARTY_SNAPPY_OPENSOURCE_SNAPPY_C_H_
 
+#ifndef __SNAPPY_API
+#ifdef _MSC_VER
+#include "snappy-dll.h"
+#else
+#define __SNAPPY_API
+#endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -68,6 +76,7 @@ typedef enum {
  *   }
  *   free(output);
  */
+__SNAPPY_API
 snappy_status snappy_compress(const char* input,
                               size_t input_length,
                               char* compressed,
@@ -100,6 +109,7 @@ snappy_status snappy_compress(const char* input,
  *   }
  *   free(output);
  */
+__SNAPPY_API
 snappy_status snappy_uncompress(const char* compressed,
                                 size_t compressed_length,
                                 char* uncompressed,
@@ -109,6 +119,7 @@ snappy_status snappy_uncompress(const char* compressed,
  * Returns the maximal size of the compressed representation of
  * input data that is "source_length" bytes in length.
  */
+__SNAPPY_API
 size_t snappy_max_compressed_length(size_t source_length);
 
 /*
@@ -117,6 +128,7 @@ size_t snappy_max_compressed_length(size_t source_length);
  * *result normally. Returns SNAPPY_INVALID_INPUT on parsing error.
  * This operation takes O(1) time.
  */
+__SNAPPY_API
 snappy_status snappy_uncompressed_length(const char* compressed,
                                          size_t compressed_length,
                                          size_t* result);
@@ -128,6 +140,7 @@ snappy_status snappy_uncompressed_length(const char* compressed,
  * Takes time proportional to compressed_length, but is usually at least a
  * factor of four faster than actual decompression.
  */
+__SNAPPY_API
 snappy_status snappy_validate_compressed_buffer(const char* compressed,
                                                 size_t compressed_length);
 
